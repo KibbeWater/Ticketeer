@@ -4,7 +4,7 @@ module.exports = {
 	// Top level
 	name: 'example',
 	description: 'example description',
-	usage: '',
+	usage: '(name) ',
 	args: 2,
 
 	// More optional
