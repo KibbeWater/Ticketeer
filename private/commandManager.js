@@ -1,3 +1,5 @@
+const { Slash } = require('discord.js');
+
 const commandParser = require('./commandParser');
 
 var _commands = [];
@@ -13,3 +15,16 @@ function _registerCommands() {
 		console.log('[*] Registered command: ' + command.name);
 	});
 }
+
+function _registerSlashCommands() {
+	for (let i = 0; i < _commands.length; i++) {
+		const command = _commands[i];
+		if (command.slashRun != undefined) {
+		}
+	}
+}
+
+module.exports = {
+	RegisterCommands: _registerCommands,
+	RegisterSlashCommands: _registerSlashCommands,
+};
