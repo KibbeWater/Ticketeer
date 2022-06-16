@@ -1,14 +1,28 @@
-const { PermissionFlagsBits } = require('discord-api-types/v10');
+const { PermissionFlagsBits, ApplicationCommandOptionType } = require('discord-api-types/v10');
+const { Interaction, CommandInteraction } = require('discord.js');
 
 module.exports = {
-	// Top level
+	// Required
 	name: 'example',
 	description: 'example description',
-	usage: '(name) ',
-	args: 2,
+	args: [
+		{
+			type: ApplicationCommandOptionType.String,
+			name: 'name',
+			description: 'Your name',
+			required: true,
+		},
+		{
+			type: ApplicationCommandOptionType.Number,
+			name: 'age',
+			description: 'Your age',
+			required: true,
+		},
+	],
 
 	// More optional
 	permission: PermissionFlagsBits.Administrator,
+	aliases: [],
 	dm: true,
 
 	// Run methods
@@ -17,6 +31,17 @@ module.exports = {
 	textRun: _textRun,
 };
 
-function _slashCmdRun(interaction) {}
+/**
+ *
+ * @param {CommandInteraction} interaction
+ */
+function _slashCmdRun(interaction) {
+	interaction.reply({
+		content: `Your name is ${interaction.options.getString(
+			'name'
+		)} and you are ${interaction.options.getNumber('age')} years old`,
+		ephemeral: true,
+	});
+}
 
-function _textRun(args) {}
+function _textRun(msg, args) {}
