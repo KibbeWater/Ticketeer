@@ -1,10 +1,15 @@
 const fs = require('fs');
 const path = require('path');
 const config = require('../config.json');
-const { Slash, Client, Interaction } = require('discord.js');
+const { Client, Interaction } = require('discord.js');
+const { SlashCommandBuilder } = require('@discordjs/builders');
+const { PermissionFlagsBits } = require('discord-api-types/v10');
+const { REST } = require('@discordjs/rest');
+const { Routes } = require('discord-api-types/v9');
 
 const commandParser = require('./commandParser');
 const utils = require('./utils');
+const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 var _commands = [];
 
@@ -13,7 +18,12 @@ var _commands = [];
  * @param {Interaction} interaction
  */
 function _slashCommandHandler(interaction) {
-	if (!interaction.isCommand()) return;
+	if (!interaction.isCommand()) {
+		_commands.forEach((cmd) => {
+			if (cmd.interaction) cmd.interaction(interaction);
+		});
+		return;
+	}
 
 	const command = _commands.find((cmd) => cmd.name == interaction.commandName);
 
@@ -47,26 +57,25 @@ async function _registerSlashCommands(client) {
 
 	client.on('interactionCreate', _slashCommandHandler);
 
-	var commands;
-	if (config.debug) commands = (await client.guilds.fetch(config.debug.guild)).commands;
-	else commands = client.application.commands;
+	var commands = client.application.commands;
 
 	for (let i = 0; i < _commands.length; i++) {
 		const command = _commands[i];
 		if (command.slashRun != undefined) {
-			const options = {
+			const cmd = {
 				name: command.name.toLowerCase(),
 				description: command.description,
 				options: command.args,
 			};
 
-			if (command.dm) options.dmPermission = command.dm;
-			if (command.permission) options.defaultMemberPermissions = command.permission;
+			if (command.dm) cmd.dmPermission = command.dm;
+			if (command.permission) cmd.default_member_permissions = Number(command.permission);
 
-			commands
-				.create(options)
-				.then(() => console.log('[*] Registered Slash-Command: ' + command.name))
-				.catch(() => console.log('[*] Unable to register Slash-Command: ' + command.name));
+			await rest.post(Routes.applicationCommands(client.application.id), {
+				body: cmd,
+			});
+
+			console.log('[*] Registered Slash-Command: ' + command.name);
 		}
 	}
 }

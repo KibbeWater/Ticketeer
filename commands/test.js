@@ -4,8 +4,8 @@ const utils = require('../private/utils');
 
 module.exports = {
 	// Required
-	name: 'example',
-	description: 'example description',
+	name: 'test',
+	description: 'test description',
 	args: [
 		{
 			type: ApplicationCommandOptionType.String,
@@ -22,13 +22,11 @@ module.exports = {
 	],
 
 	// More optional
-	permission: PermissionFlagsBits.Administrator,
 	aliases: [],
-	dm: true,
+	dm: false,
 
 	// Run methods
 	slashRun: _slashCmdRun,
-
 	textRun: _textRun,
 };
 
