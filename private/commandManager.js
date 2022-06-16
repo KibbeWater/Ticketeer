@@ -97,15 +97,12 @@ async function _executeCommand(command, msg) {
 
 	if (!_command) return;
 
-	const canUse = _canUseCommand(_command, msg);
-	if (!canUse.result)
-		if (canUse.reason == 'No permissions') return utils.messages.noPermissions(msg.channel);
-		else return;
+	if (!_canUseCommand(_command, msg)) return;
 
 	const args = msg.content.split(' ').slice(1).join(' ');
 	const parsedArgs = commandParser(args);
 
-	if (_command.args && parsedArgs.length < _command.args)
+	if (_command.args && parsedArgs.length < _command.args.length)
 		return utils.messages.badUsage(msg, _command);
 
 	_command.textRun(msg, parsedArgs);
@@ -114,4 +111,5 @@ async function _executeCommand(command, msg) {
 module.exports = {
 	RegisterCommands: _registerCommands,
 	RegisterSlashCommands: _registerSlashCommands,
+	ExecuteCommand: _executeCommand,
 };

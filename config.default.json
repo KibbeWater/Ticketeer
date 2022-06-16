@@ -1,4 +1,5 @@
 {
+    "prefix": "!",
     "ownerID": 0,
     "success": "00FF00",
     "error": "FF0000"

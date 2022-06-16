@@ -3,13 +3,15 @@ const { args } = require('../commands/example');
 
 const config = require('../config.json');
 
+function _parseArgsUsage(args) {
+	let usage = [];
+	usage = args.map((cmd) => (cmd.required ? `<${cmd.name}>` : `[${cmd.name}]`));
+	return usage.join(' ');
+}
+
 module.exports = {
 	commands: {
-		parseArgsUsage: (args) => {
-			let usage = [];
-			usage = args.map((cmd) => (cmd.required ? `<${cmd.name}>` : `[${cmd.name}]`));
-			return usage.join(' ');
-		},
+		parseArgsUsage: _parseArgsUsage,
 	},
 
 	messages: {
@@ -19,12 +21,16 @@ module.exports = {
 		 * @param {Object} cmd The command object
 		 */
 		badUsage: (msg, cmd) => {
-			msg.reply(
-				new MessageEmbed()
-					.setTitle('Incorrect Usage')
-					.setDescription(`Usage: ${this.commands.parseArgsUsage(args)}`)
-					.setColor(config.error)
-			);
+			msg.reply({
+				embeds: [
+					new MessageEmbed()
+						.setTitle('Incorrect Usage')
+						.setDescription(
+							`Usage: ${config.prefix}${cmd.name} ${_parseArgsUsage(args)}`
+						)
+						.setColor(config.error),
+				],
+			});
 			return false;
 		},
 
@@ -33,22 +39,26 @@ module.exports = {
 		 * @param {Message} msg The message object of which the command tried to execute on
 		 */
 		noPermissions: (msg) => {
-			msg.reply(
-				new MessageEmbed()
-					.setTitle('No Permissions')
-					.setDescription("You don't have permissions to use this command")
-					.setColor(config.error)
-			);
+			msg.reply({
+				embeds: [
+					new MessageEmbed()
+						.setTitle('No Permissions')
+						.setDescription("You don't have permissions to use this command")
+						.setColor(config.error),
+				],
+			});
 			return false;
 		},
 
 		error: (title, description, msg) => {
-			msg.reply(
-				new MessageEmbed()
-					.setTitle(title)
-					.setDescription(description)
-					.setColor(config.error)
-			);
+			msg.reply({
+				embeds: [
+					new MessageEmbed()
+						.setTitle(title)
+						.setDescription(description)
+						.setColor(config.error),
+				],
+			});
 			return false;
 		},
 	},

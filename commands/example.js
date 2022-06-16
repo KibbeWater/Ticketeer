@@ -1,5 +1,6 @@
 const { PermissionFlagsBits, ApplicationCommandOptionType } = require('discord-api-types/v10');
 const { Interaction, CommandInteraction } = require('discord.js');
+const utils = require('../private/utils');
 
 module.exports = {
 	// Required
@@ -44,4 +45,14 @@ function _slashCmdRun(interaction) {
 	});
 }
 
-function _textRun(msg, args) {}
+/**
+ *
+ * @param {Message} msg Original message
+ * @param {Array<String>} args Command arguments
+ */
+function _textRun(msg, args) {
+	let age = parseInt(args[1]);
+	if (isNaN(age)) return utils.messages.badUsage(msg, this);
+
+	msg.reply(`Your name is ${args[0]} and you are ${args[1]} years old`);
+}

@@ -18,9 +18,23 @@ if (!fs.existsSync('./config.json')) {
 	process.exit(1);
 }
 
+const config = require('./config.json');
+
 bot.on('ready', () => {
 	commandManager.RegisterCommands();
 	commandManager.RegisterSlashCommands(bot);
+});
+
+bot.on('messageCreate', (msg) => {
+	if (!msg.content.startsWith(config.prefix)) return;
+
+	const commandName = msg.content.split(' ')[0].slice(1);
+
+	try {
+		commandManager.ExecuteCommand(commandName, msg);
+	} catch (err) {
+		console.error(`Error occured attempting to run command '${commandName}': ${err}`);
+	}
 });
 
 bot.login(process.env.DISCORD_TOKEN);
