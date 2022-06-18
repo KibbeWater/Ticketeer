@@ -18,9 +18,6 @@ module.exports = {
 	 * @return {MongoClient}
 	 */
 	getInstance() {
-		return new Promise(async (resolve, reject) => {
-			if (client.isConnected()) await client.connect();
-			resolve(client);
-		});
+		return client;
 	},
 };
