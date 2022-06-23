@@ -68,7 +68,7 @@ async function _reserveTicket(guild, author, claimant) {
 /**
  * Get the tickets for a guild
  * @param {Guild} guild
- * @returns {Ticket}
+ * @returns {Promise<Array<Ticket>>}
  */
 function _getTickets(guild) {
 	const tickets = mongo.db('ticketeer').collection('tickets');
