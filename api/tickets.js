@@ -9,20 +9,25 @@ const mongo = require('../private/db').getInstance();
  * @param {TextChannel} channel
  * @param {GuildMember} author
  * @param {GuildMember} claimant
- * @returns {Ticket}
+ * @returns {Promise<Ticket>}
  */
 function _createTicket(guild, channel, author, claimant) {
-	const tickets = mongo.db('ticketeer').collection('tickets');
+	return new Promise((resolve, reject) => {
+		const tickets = mongo.db('ticketeer').collection('tickets');
 
-	const localId = _getLocalId(guild);
+		const localId = _getLocalId(guild);
 
-	return tickets.insertOne({
-		localId,
-		guildId: guild.id,
-		channelId: channel.id,
-		authorId: author.id,
-		claimId: claimant.id,
-		createdAt: new Date(),
+		tickets
+			.insertOne({
+				localId,
+				guildId: guild.id,
+				channelId: channel.id,
+				authorId: author.id,
+				claimId: claimant.id,
+				createdAt: new Date(),
+			})
+			.then(resolve)
+			.catch(reject);
 	});
 }
 
@@ -33,12 +38,12 @@ function _createTicket(guild, channel, author, claimant) {
  * @param {GuildMember} claimant
  * @returns {Array<Ticket, Function, Function>} [reserve, release]
  */
-function _reserveTicket(guild, author, claimant) {
+async function _reserveTicket(guild, author, claimant) {
 	const tickets = mongo.db('ticketeer').collection('tickets');
 
 	const localId = _getLocalId(guild);
 
-	const reservedTicket = tickets.insertOne({
+	const reservedTicket = await tickets.insertOne({
 		localId,
 		guildId: guild.id,
 		authorId: author.id,
@@ -79,7 +84,9 @@ function _getTickets(guild) {
 function _closeTicket(id) {
 	const tickets = mongo.db('ticketeer').collection('tickets');
 
-	tickets.updateOne({ _id: id }, { $set: { closedAt: new Date() } });
+	tickets.updateOne({ _id: id }, { $set: { closedAt: new Date() } }).catch((err) => {
+		console.error('[Ticketeer] Error closing ticket:', err);
+	});
 }
 
 /**
@@ -89,7 +96,11 @@ function _closeTicket(id) {
 function _closeTicketChannel(channel) {
 	const tickets = mongo.db('ticketeer').collection('tickets');
 
-	tickets.updateOne({ channelId: channel.id }, { $set: { closedAt: new Date() } });
+	tickets
+		.updateOne({ channelId: channel.id }, { $set: { closedAt: new Date() } })
+		.catch((err) => {
+			console.error('[Ticketeer] Error closing ticket:', err);
+		});
 }
 
 /**
@@ -97,8 +108,11 @@ function _closeTicketChannel(channel) {
  * @param {Guild} guild
  * @returns {Number}
  */
-function _getLocalId(guild) {
-	return mongo.db('ticketeer').collection('tickets').countDocuments({ guildId: guild.id }) + 1;
+async function _getLocalId(guild) {
+	return (
+		(await mongo.db('ticketeer').collection('tickets').countDocuments({ guildId: guild.id })) +
+		1
+	);
 }
 
 module.exports = {
