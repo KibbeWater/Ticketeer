@@ -78,6 +78,17 @@ function _getTickets(guild) {
 }
 
 /**
+ * Get the ticket with the given id
+ * @param {Guild} guild
+ * @param {Number} localId
+ */
+async function _getTicket(guild, localId) {
+	const tickets = mongo.db('ticketeer').collection('tickets');
+
+	return await tickets.findOne({ guildId: guild.id, localId });
+}
+
+/**
  * Close the ticket with the given id
  * @param {ObjectId} id
  */
