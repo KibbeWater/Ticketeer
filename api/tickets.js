@@ -27,6 +27,40 @@ function _createTicket(guild, channel, author, claimant) {
 }
 
 /**
+ * Reserve a ticket's localId for a guild
+ * @param {Guild} guild
+ * @param {GuildMember} author
+ * @param {GuildMember} claimant
+ * @returns {Array<Ticket, Function, Function>} [reserve, release]
+ */
+function _reserveTicket(guild, author, claimant) {
+	const tickets = mongo.db('ticketeer').collection('tickets');
+
+	const localId = _getLocalId(guild);
+
+	const reservedTicket = tickets.insertOne({
+		localId,
+		guildId: guild.id,
+		authorId: author.id,
+		claimId: claimant.id,
+		createdAt: new Date(),
+	});
+
+	return [
+		reservedTicket,
+		(channel) => {
+			// Callback for finishing the reservation
+			reservedTicket.channelId = channel.id;
+			tickets.updateOne({ _id: reservedTicket._id }, { $set: { channelId: channel.id } });
+		},
+		() => {
+			// Callback for cancelling the reservation
+			tickets.deleteOne({ _id: reservedTicket._id });
+		},
+	];
+}
+
+/**
  * Get the tickets for a guild
  * @param {Guild} guild
  * @returns {Ticket}
@@ -69,6 +103,7 @@ function _getLocalId(guild) {
 
 module.exports = {
 	createTicket: _createTicket,
+	reserveTicket: _reserveTicket,
 	getTickets: _getTickets,
 	closeTicket: _closeTicket,
 	closeTicketChannel: _closeTicketChannel,
