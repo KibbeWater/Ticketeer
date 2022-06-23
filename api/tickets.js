@@ -9,7 +9,7 @@ const mongo = require('../private/db').getInstance();
  * @param {TextChannel} channel
  * @param {GuildMember} author
  * @param {GuildMember} claimant
- * @returns {Object}
+ * @returns {Ticket}
  */
 function _createTicket(guild, channel, author, claimant) {
 	const tickets = mongo.db('ticketeer').collection('tickets');
@@ -22,13 +22,14 @@ function _createTicket(guild, channel, author, claimant) {
 		channelId: channel.id,
 		authorId: author.id,
 		claimId: claimant.id,
+		createdAt: new Date(),
 	});
 }
 
 /**
  * Get the tickets for a guild
  * @param {Guild} guild
- * @returns {Object}
+ * @returns {Ticket}
  */
 function _getTickets(guild) {
 	const tickets = mongo.db('ticketeer').collection('tickets');
@@ -72,3 +73,15 @@ module.exports = {
 	closeTicket: _closeTicket,
 	closeTicketChannel: _closeTicketChannel,
 };
+
+/**
+ * @typedef {Object} Ticket
+ * @property {ObjectId} _id
+ * @property {Number} localId
+ * @property {String} guildId
+ * @property {String} channelId
+ * @property {String} authorId
+ * @property {String} claimId
+ * @property {Date} createdAt
+ * @property {Date} closedAt
+ */
