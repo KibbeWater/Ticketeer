@@ -185,13 +185,13 @@ module.exports = {
 
 /**
  * @typedef {Object} Teams
- * @property {BigInt} guildId
+ * @property {String} guildId
  * @property {Array<Team>} teams
  */
 
 /**
  * @typedef {Object} Team
- * @property {string} name
- * @property {Array<BigInt>} supervisors
- * @property {Array<BigInt>} members
+ * @property {String} name
+ * @property {Array<String>} supervisors
+ * @property {Array<String>} members
  */

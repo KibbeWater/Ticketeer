@@ -9,8 +9,11 @@ const {
 	TextChannel,
 } = require('discord.js');
 const utils = require('../private/utils');
+const teams = require('../api/teams');
+const algorithm = require('../api/algorithm');
 
 const config = require('../config.json');
+const { reserveTicket } = require('../api/tickets');
 
 module.exports = {
 	// Required
@@ -21,6 +24,12 @@ module.exports = {
 			type: ApplicationCommandOptionType.String,
 			name: 'type',
 			description: 'The ticket "type" name, will be used as prefix for channel names',
+			required: true,
+		},
+		{
+			type: ApplicationCommandOptionType.String,
+			name: 'team',
+			description: 'The team responsible for handling this ticket',
 			required: true,
 		},
 		{
@@ -64,19 +73,52 @@ module.exports = {
  *
  * @param {CommandInteraction} interaction
  */
-function _slashCmdRun(interaction) {
+async function _slashCmdRun(interaction) {
 	let o = interaction.options;
 
 	const channel = o.getChannel('channel');
+	const team = o.getString('team');
 
-	_run(
-		channel || interaction.channel,
-		o.getString('type', true),
-		o.getChannel('category'),
-		o.getString('title'),
-		o.getString('description'),
-		interaction
-	);
+	await interaction.deferReply({ ephemeral: true });
+
+	teams
+		.getGuildTeams(interaction.guild)
+		.then((teamCollection) => {
+			if (teamCollection.teams.find((t) => t.name.toLowerCase() === team.toLowerCase())) {
+				_run(
+					channel || interaction.channel,
+					team,
+					o.getString('type'),
+					o.getChannel('category'),
+					o.getString('title'),
+					o.getString('description'),
+					interaction
+				);
+			} else {
+				console.log('Team not found');
+				interaction.editReply({
+					embeds: [
+						new MessageEmbed()
+							.setTitle('Invalid Team')
+							.setDescription('The team you specified does not exist!')
+							.setColor(config.error),
+					],
+				});
+			}
+		})
+		.catch((err) => {
+			console.error(err);
+			interaction.editReply({
+				embeds: [
+					new MessageEmbed()
+						.setTitle('Unknown Error')
+						.setDescription(
+							'An unknown error has occurred, please contact a developer.'
+						)
+						.setColor(config.error),
+				],
+			});
+		});
 }
 
 /**
@@ -94,18 +136,26 @@ function _textRun(msg, args) {
 /**
  *
  * @param {TextChannel} channel
+ * @param {String} teamName
  * @param {String} typeName
  * @param {Channel} category
  * @param {String} title
  * @param {String} description
  * @param {CommandInteraction} interaction
  */
-function _run(channel, typeName, category, title, description, interaction) {
+async function _run(channel, teamName, typeName, category, title, description, interaction) {
 	title = title || `Open a ${typeName.toLowerCase()} ticket`;
 	description = description || 'Open a ticket by clicking the button below';
 
+	const team = (await teams.getGuildTeams(interaction.guild)).teams.find(
+		(t) => t.name.toLowerCase() === teamName.toLowerCase()
+	);
+
 	const row = new MessageActionRow().addComponents(
-		new MessageButton().setCustomId('create_open').setLabel('Open').setStyle('PRIMARY')
+		new MessageButton()
+			.setCustomId(`create_open-${team.name}`)
+			.setLabel('Open')
+			.setStyle('PRIMARY')
 	);
 
 	const embed = new MessageEmbed()
@@ -123,9 +173,63 @@ function _run(channel, typeName, category, title, description, interaction) {
  *
  * @param {Interaction} interaction
  */
-function _interact(interaction) {
+async function _interact(interaction) {
 	if (!interaction.isButton()) return;
-	if (interaction.customId != 'create_open') return;
+	if (!interaction.customId.startsWith('create_open')) return;
 
-	interaction.reply({ content: 'Interacted!', ephemeral: true });
+	await interaction.deferReply({ ephemeral: true });
+
+	const teamName = interaction.customId.split('_')[2];
+	const team = (await teams.getGuildTeams(interaction.guild)).teams.find(
+		(t) => t.name.toLowerCase() === teamName.toLowerCase()
+	);
+	if (!team) return interaction.editReply("Couldn't find team, please contact the server owner.");
+
+	const claimant = (await algorithm.scoreTeam(interaction.guild, teamName, { vipLevel: 5 })).user; // This is a string of the user id
+
+	const claimantMember = interaction.guild.members.fetch(claimant);
+	if (!claimantMember)
+		return interaction.editReply("Couldn't find claimant, please contact the developer.");
+
+	const [ticket, finishReservation, release] = reserveTicket(
+		interaction.guild,
+		interaction.member,
+		claimantMember
+	);
+	const ticketName = team.name + '-' + ticket.localId;
+
+	interaction.guild.channels
+		.create(ticketName, {
+			permissionOverwrites: [
+				{
+					id: interaction.guild.id,
+					deny: ['VIEW_CHANNEL'],
+				},
+				{
+					id: claimantMember.id,
+					allow: ['VIEW_CHANNEL'],
+				},
+			],
+		})
+		.then((channel) => {
+			interaction.editReply(`Created a new ticket for you! ${channel}`);
+			channel.send({
+				embeds: [
+					new MessageEmbed()
+						.setTitle('Ticket Created')
+						.setDescription(
+							`Let's get started! Please state your issue and ${claimantMember} will be in touch with you shortly.`
+						)
+						.setColor(config.success),
+				],
+			});
+			finishReservation(channel);
+		})
+		.catch((err) => {
+			console.error(
+				`[Ticketeer] Failed creating ticket on guild ${interaction.guild.id}`,
+				err
+			);
+			release();
+		});
 }

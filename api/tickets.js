@@ -1,4 +1,4 @@
-const { Guild, TextChannel, GuildMember, Channel } = require('discord.js');
+const { Guild, TextChannel, GuildMember, Channel, User } = require('discord.js');
 const { ObjectId } = require('mongodb');
 
 const mongo = require('../private/db').getInstance();
@@ -78,6 +78,29 @@ function _getTickets(guild) {
 }
 
 /**
+ * Get the tickets for a guild's user
+ * @param {Guild} guild
+ * @param {User} user
+ * @returns {Promise<Array<Ticket>>}
+ */
+function _getUserTickets(guild, user) {
+	const tickets = mongo.db('ticketeer').collection('tickets');
+
+	return tickets.find({ guildId: guild.id, claimId: user.id }).toArray();
+}
+
+/**
+ * Get the tickets for a guild
+ * @param {Guild} guild
+ * @returns {Promise<Array<Ticket>>}
+ */
+function _getGuildTickets(guild) {
+	const tickets = mongo.db('ticketeer').collection('tickets');
+
+	return tickets.find({ guildId: guild.id }).toArray();
+}
+
+/**
  * Get the ticket with the given id
  * @param {Guild} guild
  * @param {Number} localId
@@ -130,6 +153,8 @@ module.exports = {
 	createTicket: _createTicket,
 	reserveTicket: _reserveTicket,
 	getTickets: _getTickets,
+	getUserTickets: _getUserTickets,
+	getGuildTickets: _getGuildTickets,
 	closeTicket: _closeTicket,
 	closeTicketChannel: _closeTicketChannel,
 };
