@@ -9,9 +9,17 @@ function _parseArgsUsage(args) {
 	return usage.join(' ');
 }
 
+function _getMemberIdFromMention(str) {
+	if (str.startsWith('<@') && str.endsWith('>')) {
+		return str.slice(2, -1);
+	}
+	return null;
+}
+
 module.exports = {
 	commands: {
 		parseArgsUsage: _parseArgsUsage,
+		getMemberIdFromMention: _getMemberIdFromMention,
 	},
 
 	messages: {

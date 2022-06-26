@@ -165,8 +165,7 @@ async function _run(channel, teamName, typeName, category, title, description, i
 
 	channel.send({ components: [row], embeds: [embed] });
 
-	if (interaction)
-		interaction.reply({ content: 'Created a new panel for you!', ephemeral: true });
+	if (interaction) interaction.editReply({ content: 'Created a new panel for you!' });
 }
 
 /**
@@ -179,15 +178,18 @@ async function _interact(interaction) {
 
 	await interaction.deferReply({ ephemeral: true });
 
-	const teamName = interaction.customId.split('_')[2];
+	const teamName = interaction.customId.split('-')[1];
 	const team = (await teams.getGuildTeams(interaction.guild)).teams.find(
 		(t) => t.name.toLowerCase() === teamName.toLowerCase()
 	);
 	if (!team) return interaction.editReply("Couldn't find team, please contact the server owner.");
 
-	const claimant = (await algorithm.scoreTeam(interaction.guild, teamName, { vipLevel: 5 })).user; // This is a string of the user id
+	const claimant = await algorithm.scoreTeam(interaction.guild, teamName, { vipLevel: 5 }); // This is a string of the user id
+	console.log(claimant);
+	if (!claimant)
+		return interaction.editReply("Couldn't find a claimant, please contact the developer.");
 
-	const claimantMember = interaction.guild.members.fetch(claimant);
+	const claimantMember = interaction.guild.members.fetch(claimant.user);
 	if (!claimantMember)
 		return interaction.editReply("Couldn't find claimant, please contact the developer.");
 

@@ -19,7 +19,8 @@ function _createTeam(guild, name) {
 
 				teams
 					.updateOne({ guildId: guild.id }, { $set: { teams: team.teams } })
-					.catch(reject);
+					.catch(reject)
+					.then(resolve);
 			})
 			.catch(reject);
 	});
@@ -56,15 +57,20 @@ function _getGuildTeams(guild) {
  * @param {GuildMember} member
  */
 function _teamAdd(guild, team, member) {
-	const teamCollection = mongo.db('ticketeer').collection('teams');
+	return new Promise((resolve, reject) => {
+		const teamCollection = mongo.db('ticketeer').collection('teams');
 
-	_getGuildTeams(guild)
-		.then((teams) => {
-			teams.teams.find((t) => t.name === team).members.push(member.id);
+		_getGuildTeams(guild)
+			.then((teams) => {
+				teams.teams.find((t) => t.name === team).members.push(member.id);
 
-			teamCollection.updateOne({ guildId: guild.id }, { $set: { teams: teams.teams } });
-		})
-		.catch((err) => console.error('[Ticketeer] Error adding member to team:', err));
+				teamCollection
+					.updateOne({ guildId: guild.id }, { $set: { teams: teams.teams } })
+					.then(resolve)
+					.catch(reject);
+			})
+			.catch(reject);
+	});
 }
 
 /**
@@ -74,15 +80,20 @@ function _teamAdd(guild, team, member) {
  * @param {GuildMember} member
  */
 function _teamAddSupervisor(guild, team, member) {
-	const teamCollection = mongo.db('ticketeer').collection('teams');
+	return new Promise((resolve, reject) => {
+		const teamCollection = mongo.db('ticketeer').collection('teams');
 
-	_getGuildTeams(guild)
-		.then((teams) => {
-			teams.teams.find((t) => t.name === team).supervisors.push(member.id);
+		_getGuildTeams(guild)
+			.then((teams) => {
+				teams.teams.find((t) => t.name === team).supervisors.push(member.id);
 
-			teamCollection.updateOne({ guildId: guild.id }, { $set: { teams: teams.teams } });
-		})
-		.catch((err) => console.error('[Ticketeer] Error adding member to team:', err));
+				teamCollection
+					.updateOne({ guildId: guild.id }, { $set: { teams: teams.teams } })
+					.then(resolve)
+					.catch(reject);
+			})
+			.catch(reject);
+	});
 }
 
 /**
@@ -92,19 +103,24 @@ function _teamAddSupervisor(guild, team, member) {
  * @param {GuildManager} member
  */
 function _teamRemove(guild, teamName, member) {
-	const teamCollection = mongo.db('ticketeer').collection('teams');
+	return new Promise((resolve, reject) => {
+		const teamCollection = mongo.db('ticketeer').collection('teams');
 
-	_getGuildTeams(guild)
-		.then((teams) => {
-			const team = teams.teams.find((t) => t.name === teamName);
+		_getGuildTeams(guild)
+			.then((teams) => {
+				const team = teams.teams.find((t) => t.name === teamName);
 
-			if (team) {
-				team.members = team.members.filter((m) => m !== member.id);
+				if (team) {
+					team.members = team.members.filter((m) => m !== member.id);
 
-				teamCollection.updateOne({ guildId: guild.id }, { $set: { teams: teams.teams } });
-			}
-		})
-		.catch((err) => console.error('[Ticketeer] Error removing member from team:', err));
+					teamCollection
+						.updateOne({ guildId: guild.id }, { $set: { teams: teams.teams } })
+						.then(resolve)
+						.catch(reject);
+				}
+			})
+			.catch(reject);
+	});
 }
 
 /**
@@ -115,19 +131,24 @@ function _teamRemove(guild, teamName, member) {
  * @returns {Promise<void>}
  */
 function _teamRemoveSupervisor(guild, teamName, member) {
-	const teamCollection = mongo.db('ticketeer').collection('teams');
+	return new Promise((resolve, reject) => {
+		const teamCollection = mongo.db('ticketeer').collection('teams');
 
-	_getGuildTeams(guild)
-		.then((teams) => {
-			const team = teams.teams.find((t) => t.name === teamName);
+		_getGuildTeams(guild)
+			.then((teams) => {
+				const team = teams.teams.find((t) => t.name === teamName);
 
-			if (team) {
-				team.supervisors = team.supervisors.filter((m) => m !== member.id);
+				if (team) {
+					team.supervisors = team.supervisors.filter((m) => m !== member.id);
 
-				teamCollection.updateOne({ guildId: guild.id }, { $set: { teams: teams.teams } });
-			}
-		})
-		.catch((err) => console.error('[Ticketeer] Error removing supervisor from team:', err));
+					teamCollection
+						.updateOne({ guildId: guild.id }, { $set: { teams: teams.teams } })
+						.then(resolve)
+						.catch(reject);
+				}
+			})
+			.catch(reject);
+	});
 }
 
 /**
