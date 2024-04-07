@@ -1,8 +1,9 @@
-import { Client } from 'discord.js';
+import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { env } from './api/env';
 
 const bot = new Client({
-	intents: ['Guilds', 'GuildMembers', 'GuildMessages'],
+	intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
+	partials: [Partials.Channel],
 });
 
 bot.on('ready', () => {

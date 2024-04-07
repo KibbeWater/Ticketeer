@@ -1,6 +1,11 @@
 {
+  "scripts": {
+    "start": "bun dist/index.js",
+    "refresh": "tsc && bun dist/src/refreshCommands.js",
+    "dev": "tsc && bun dist/index.js"
+  },
   "dependencies": {
-    "@discordjs/rest": "^0.5.0",
+    "@discordjs/rest": "^2.2.0",
     "@prisma/client": "^5.12.1",
     "bufferutil": "^4.0.8",
     "discord.js": "^14.14.1",

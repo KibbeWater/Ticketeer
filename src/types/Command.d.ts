@@ -4,7 +4,6 @@ type Command = {
 	name: string;
 	description: string;
 	args: CommandArg[];
-
 	permissions: bigint[];
 	aliases: string[];
 
@@ -27,4 +26,11 @@ type CommandArg = {
 	name: string;
 	description: string;
 	required: boolean;
+
+	choices?: CommandOption[];
+};
+
+type CommandOption = {
+	name: string;
+	value: string | number;
 };

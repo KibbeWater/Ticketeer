@@ -1,6 +1,6 @@
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v10';
-import { Client, Interaction, Message, Utils } from 'discord.js';
+import { Client, Interaction, Message } from 'discord.js';
 import { readdirSync } from 'fs';
 import path from 'path';
 
@@ -32,16 +32,18 @@ function _slashCommandHandler(interaction: Interaction) {
 	command.slashRun(interaction);
 }
 
-export function RegisterCommands() {
-	readdirSync('./commands/').forEach((dir) => {
+export async function RegisterCommands() {
+	const commandRegistrations = readdirSync(path.join(__dirname, 'commands')).map(async (dir) => {
 		if (!dir.endsWith('.js')) return;
 
 		// This command will run in another context (?) and therefore needs a different path
-		const command = require(path.join('../commands/', dir));
+		const command = (await import(path.join(__dirname, 'commands', dir))).default as Command;
 
 		_commands.push(command);
 		console.log('[*] Registered command: ' + command.name);
 	});
+
+	await Promise.all(commandRegistrations);
 }
 
 /**
@@ -62,10 +64,10 @@ export async function RegisterSlashCommands(client: Client) {
 			name: command.name.toLowerCase(),
 			description: command.description,
 			options: command.args,
+			context: [0, command.dm ? 1 : undefined].filter((v) => v != undefined),
 		};
 
-		if (command.dm) cmd.dmPermission = command.dm;
-		if (command.permissions) cmd.default_member_permissions = command.permissions.reduce((a, b) => a & b).toString();
+		if (command.permissions) cmd.default_member_permissions = command.permissions.reduce((a, b) => a | b, BigInt(0)).toString();
 
 		await rest.post(Routes.applicationCommands(client.application!.id), {
 			body: cmd,

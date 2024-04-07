@@ -1,13 +1,12 @@
-import { Client } from 'discord.js';
+import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { _envCheck, env } from './src/api/env';
-import { RegisterCommands } from './src/commandManager';
+import { ExecuteCommand, RegisterCommands, RegisterSlashCommands } from './src/commandManager';
 
 _envCheck();
 
-const commandManager = require('./private/commandManager');
-
 const bot = new Client({
-	intents: ['Guilds', 'GuildMembers', 'GuildMessages'],
+	intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
+	partials: [Partials.Channel],
 });
 
 if (!env.DISCORD_TOKEN) {
@@ -15,9 +14,9 @@ if (!env.DISCORD_TOKEN) {
 	process.exit(1);
 }
 
-bot.on('ready', () => {
-	RegisterCommands();
-	commandManager.RegisterSlashCommands(bot);
+bot.on('ready', async () => {
+	await RegisterCommands();
+	await RegisterSlashCommands(bot);
 });
 
 bot.on('messageCreate', (msg) => {
@@ -26,7 +25,7 @@ bot.on('messageCreate', (msg) => {
 	const commandName = msg.content.split(' ')[0].slice(1);
 
 	try {
-		commandManager.ExecuteCommand(commandName, msg);
+		ExecuteCommand(commandName, msg);
 	} catch (err) {
 		console.error(`Error occured attempting to run command '${commandName}': ${err}`);
 	}

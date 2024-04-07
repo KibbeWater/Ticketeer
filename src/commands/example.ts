@@ -1,8 +1,31 @@
 import { PermissionFlagsBits, ApplicationCommandOptionType } from 'discord-api-types/v10';
-const { CommandInteraction } = require('discord.js');
-const utils = require('../private/utils');
+import { SlashCommandFunction, TextCommandFunction } from '../types/Command';
+import { defineCommand, utils } from '../utils';
 
-module.exports = {
+const _slashCmdRun: SlashCommandFunction = async (interaction) => {
+	const _name = interaction.options.get('name');
+	const _age = interaction.options.get('age');
+
+	const name = _name?.type === ApplicationCommandOptionType.String ? _name.value : undefined;
+	const age = _age?.type === ApplicationCommandOptionType.Number ? _age.value : undefined;
+
+	interaction.reply({
+		content: `Your name is ${name} and you are ${age} years old`,
+		ephemeral: true,
+	});
+};
+
+const _textRun: TextCommandFunction = async (msg, args) => {
+	let age = parseInt(args[1]);
+	if (isNaN(age)) {
+		utils.messages.badUsage(msg, command);
+		return;
+	}
+
+	await msg.reply(`Your name is ${args[0]} and you are ${args[1]} years old`);
+};
+
+const command = defineCommand({
 	// Required
 	name: 'example',
 	description: 'example description',
@@ -22,35 +45,13 @@ module.exports = {
 	],
 
 	// More optional
-	permission: PermissionFlagsBits.Administrator,
+	permissions: [PermissionFlagsBits.Administrator],
 	aliases: [],
 	dm: true,
 
 	// Run methods
 	slashRun: _slashCmdRun,
-
 	textRun: _textRun,
-};
+});
 
-/**
- *
- * @param {CommandInteraction} interaction
- */
-function _slashCmdRun(interaction) {
-	interaction.reply({
-		content: `Your name is ${interaction.options.getString('name')} and you are ${interaction.options.getNumber('age')} years old`,
-		ephemeral: true,
-	});
-}
-
-/**
- *
- * @param {Message} msg Original message
- * @param {Array<String>} args Command arguments
- */
-function _textRun(msg, args) {
-	let age = parseInt(args[1]);
-	if (isNaN(age)) return utils.messages.badUsage(msg, this);
-
-	msg.reply(`Your name is ${args[0]} and you are ${args[1]} years old`);
-}
+export default command;
