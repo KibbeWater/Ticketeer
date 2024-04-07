@@ -1,4 +1,4 @@
-const { PermissionFlagsBits, ApplicationCommandOptionType } = require('discord-api-types/v10');
+import { PermissionFlagsBits, ApplicationCommandOptionType } from 'discord-api-types/v10';
 const { CommandInteraction } = require('discord.js');
 const utils = require('../private/utils');
 
@@ -38,9 +38,7 @@ module.exports = {
  */
 function _slashCmdRun(interaction) {
 	interaction.reply({
-		content: `Your name is ${interaction.options.getString(
-			'name'
-		)} and you are ${interaction.options.getNumber('age')} years old`,
+		content: `Your name is ${interaction.options.getString('name')} and you are ${interaction.options.getNumber('age')} years old`,
 		ephemeral: true,
 	});
 }

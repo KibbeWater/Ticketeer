@@ -1,22 +1,25 @@
-const { MessageEmbed, Message } = require('discord.js');
-const { args } = require('../commands/example');
+import { EmbedBuilder, Message } from 'discord.js';
+import { Command, CommandArg } from './types/Command';
+import { env } from './api/env';
 
-const config = require('../config.json');
-
-function _parseArgsUsage(args) {
+function _parseArgsUsage(args: CommandArg[]) {
 	let usage = [];
 	usage = args.map((cmd) => (cmd.required ? `<${cmd.name}>` : `[${cmd.name}]`));
 	return usage.join(' ');
 }
 
-function _getMemberIdFromMention(str) {
+function _getMemberIdFromMention(str: string) {
 	if (str.startsWith('<@') && str.endsWith('>')) {
 		return str.slice(2, -1);
 	}
 	return null;
 }
 
-module.exports = {
+export const defineCommand = (command: Command) => {
+	return command;
+};
+
+export const utils = {
 	commands: {
 		parseArgsUsage: _parseArgsUsage,
 		getMemberIdFromMention: _getMemberIdFromMention,
@@ -28,15 +31,13 @@ module.exports = {
 		 * @param {Message} msg The message object of which the command tried to execute on
 		 * @param {Object} cmd The command object
 		 */
-		badUsage: (msg, cmd) => {
+		badUsage: (msg: Message, cmd: Command) => {
 			msg.reply({
 				embeds: [
-					new MessageEmbed()
+					new EmbedBuilder()
 						.setTitle('Incorrect Usage')
-						.setDescription(
-							`Usage: ${config.prefix}${cmd.name} ${_parseArgsUsage(args)}`
-						)
-						.setColor(config.error),
+						.setDescription(`Usage: ${env.PREFIX}${cmd.name} ${_parseArgsUsage(cmd.args)}`)
+						.setColor('#FF0000'),
 				],
 			});
 			return false;
@@ -44,28 +45,22 @@ module.exports = {
 
 		/**
 		 * Get the no permissions embed
-		 * @param {Message} msg The message object of which the command tried to execute on
 		 */
-		noPermissions: (msg) => {
+		noPermissions: (msg: Message) => {
 			msg.reply({
 				embeds: [
-					new MessageEmbed()
+					new EmbedBuilder()
 						.setTitle('No Permissions')
 						.setDescription("You don't have permissions to use this command")
-						.setColor(config.error),
+						.setColor('#FF0000'),
 				],
 			});
 			return false;
 		},
 
-		error: (title, description, msg) => {
+		error: (title: string, description: string, msg: Message) => {
 			msg.reply({
-				embeds: [
-					new MessageEmbed()
-						.setTitle(title)
-						.setDescription(description)
-						.setColor(config.error),
-				],
+				embeds: [new EmbedBuilder().setTitle(title).setDescription(description).setColor('#FF0000')],
 			});
 			return false;
 		},

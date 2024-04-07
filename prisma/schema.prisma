@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  ticket    Ticket   @relation(references: [id], fields: [ticketId])
+  ticketId  Int      @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  userId    String     @unique
+  teams     TeamUser[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model TeamUser {
+  id Int @id @default(autoincrement())
+
+  team Team     @relation(fields: [teamId], references: [id])
+  user User     @relation(fields: [userId], references: [id])
+  role TeamRole @relation(fields: [roleId], references: [id])
+
+  roleId Int
+  teamId Int
+  userId Int
+  Ticket Ticket[]
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model TeamRole {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  teamUsers TeamUser[]
+  team      Team       @relation(fields: [teamId], references: [id])
+  teamId    Int
+
+  @@index([teamId])
+}
+
+model Team {
+  id      Int        @id @default(autoincrement())
+  roles   TeamRole[]
+  users   TeamUser[]
+  tickets Ticket[]
+  guild   Guild      @relation(fields: [guildId], references: [id])
+  guildId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id       Int      @id @default(autoincrement())
+  guild    Guild    @relation(fields: [guildId], references: [id])
+  guildId  Int
+  tickets  Ticket[]
+  userId   String
+  avatar   String
+  username String
+}
+
+model Ticket {
+  id        Int       @id @default(autoincrement())
+  channelId String
+  claimant  TeamUser  @relation(fields: [claimantId], references: [id])
+  customer  Customer  @relation(fields: [customerId], references: [id])
+  guild     Guild     @relation(fields: [guildId], references: [id])
+  team      Team      @relation(fields: [teamId], references: [id])
+  feedback  Feedback?
+
+  claimantId Int
+  customerId Int
+  guildId    Int
+  teamId     Int
+  feedbackId Int?
+
+  closedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Guild {
+  id        Int        @id @default(autoincrement())
+  guildId   String     @unique
+  teams     Team[]
+  tickets   Ticket[]
+  customers Customer[]
+
+  @@index([guildId])
+}

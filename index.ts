@@ -1,32 +1,27 @@
-const fs = require('fs');
-const { Client, Intents } = require('discord.js');
+import { Client } from 'discord.js';
+import { _envCheck, env } from './src/api/env';
+import { RegisterCommands } from './src/commandManager';
+
+_envCheck();
 
 const commandManager = require('./private/commandManager');
 
 const bot = new Client({
-	intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_MESSAGES],
+	intents: ['Guilds', 'GuildMembers', 'GuildMessages'],
 });
 
-if (!process.env.DISCORD_TOKEN) {
+if (!env.DISCORD_TOKEN) {
 	console.error('There is no token defined');
 	process.exit(1);
 }
 
-if (!fs.existsSync('./config.json')) {
-	fs.copyFileSync('./config.default.json', './config.json');
-	console.error('Please configure the bot, created new config.json');
-	process.exit(1);
-}
-
-const config = require('./config.json');
-
 bot.on('ready', () => {
-	commandManager.RegisterCommands();
+	RegisterCommands();
 	commandManager.RegisterSlashCommands(bot);
 });
 
 bot.on('messageCreate', (msg) => {
-	if (!msg.content.startsWith(config.prefix)) return;
+	if (!msg.content.startsWith(env.PREFIX)) return;
 
 	const commandName = msg.content.split(' ')[0].slice(1);
 
