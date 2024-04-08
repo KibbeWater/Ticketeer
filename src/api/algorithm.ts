@@ -1,11 +1,10 @@
-import { Guild, GuildMember, User } from 'discord.js';
+import { Guild, GuildMember } from 'discord.js';
 import { prisma } from '../db';
-import { getUser } from './discord';
 
 const maxTicketsCount = 5;
 const maxExperienceTickets = 100;
 
-async function _scoreTeam(guild: Guild, teamId: number, options: { vipLevel: number }) {
+async function scoreTeam(guild: Guild, teamId: number, options?: { vipLevel: number }) {
 	const guildTeams = await prisma.guild.findUnique({
 		where: {
 			guildId: guild.id,
@@ -35,7 +34,7 @@ async function _scoreTeam(guild: Guild, teamId: number, options: { vipLevel: num
 			if (!discordUser) return;
 			return {
 				user: discordUser,
-				score: await _scoreUser(guild, discordUser, options),
+				score: await scoreUser(guild, discordUser, options),
 			};
 		})
 	);
@@ -55,8 +54,8 @@ async function _scoreTeam(guild: Guild, teamId: number, options: { vipLevel: num
  * @param {ScoringOptions} [options]
  * @returns {Number}
  */
-async function _scoreUser(guild: Guild, user: GuildMember, options: { vipLevel: number }) {
-	const [feedback, tickets] = await prisma.$transaction([
+async function scoreUser(guild: Guild, user: GuildMember, options?: { vipLevel: number }) {
+	const [feedback, tickets, role] = await prisma.$transaction([
 		prisma.feedback.findMany({
 			where: {
 				ticket: {
@@ -83,7 +82,22 @@ async function _scoreUser(guild: Guild, user: GuildMember, options: { vipLevel: 
 				},
 			},
 		}),
+		prisma.teamRole.findFirst({
+			where: {
+				team: {
+					users: {
+						some: {
+							user: {
+								userId: user.id,
+							},
+						},
+					},
+				},
+			},
+		}),
 	]);
+
+	if (!role || !role.canReceiveTickets) return 0;
 
 	const closedTickets = tickets.filter((ticket) => ticket.closedAt != undefined);
 	const openTickets = tickets.filter((ticket) => ticket.closedAt == undefined);
@@ -99,23 +113,12 @@ async function _scoreUser(guild: Guild, user: GuildMember, options: { vipLevel: 
 
 	const onlineStatusWeight = Math.max(desktopStatusWeight, webStatusWeight);
 
-	options = options || { vipLevel: 0 };
-	options.vipLevel = Math.min(options.vipLevel, 5);
+	const vipLevel = Math.min(options?.vipLevel ?? 0, 5);
 
 	let score = Math.min(maxExperienceTickets, closedTickets.length);
-	score *= ((averageFeedback * (averageRecentTickets * 3)) / 4) * Math.min(options.vipLevel / 5, 0.4); // VIP users will a more feedback influenced support representative
+	score *= ((averageFeedback * (averageRecentTickets * 3)) / 4) * Math.min(vipLevel / 5, 0.4); // VIP users will a more feedback influenced support representative
 	score *= Math.min(openTickets.length, maxTicketsCount) / (maxTicketsCount + 0.5); // Decrease score if too many tickets
-	score *= onlineStatusWeight * (options.vipLevel / 6); // VIP level will decrease power of online status
+	score *= onlineStatusWeight * (vipLevel / 6); // VIP level will decrease power of online status
 
 	return score;
 }
-
-module.exports = {
-	scoreTeam: _scoreTeam,
-	scoreUser: _scoreUser,
-};
-
-/**
- * @typedef {Object} ScoringOptions
- * @property {Number} vipLevel - The VIP level of the user [0-5], used to calculate level of priority
- */

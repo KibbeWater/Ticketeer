@@ -12,6 +12,17 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model Panel {
+  id        Int      @id @default(autoincrement())
+  guild     Guild    @relation(fields: [guildId], references: [id])
+  guildId   Int
+  team      Team     @relation(fields: [teamId], references: [id])
+  teamId    Int
+  messageId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Feedback {
   id        Int      @id @default(autoincrement())
   rating    Int
@@ -50,6 +61,8 @@ model TeamRole {
   id   Int    @id @default(autoincrement())
   name String
 
+  canReceiveTickets Boolean @default(false)
+
   teamUsers TeamUser[]
   team      Team       @relation(fields: [teamId], references: [id])
   teamId    Int
@@ -64,6 +77,7 @@ model Team {
   roles   TeamRole[]
   users   TeamUser[]
   tickets Ticket[]
+  panels  Panel[]
   guild   Guild      @relation(fields: [guildId], references: [id])
   guildId Int
 
@@ -79,20 +93,22 @@ model Customer {
   guildId  Int
   tickets  Ticket[]
   userId   String
-  avatar   String
+  avatar   String?
   username String
+
+  @@unique([userId, guildId])
 }
 
 model Ticket {
   id        Int       @id @default(autoincrement())
   channelId String
-  claimant  TeamUser  @relation(fields: [claimantId], references: [id])
+  claimant  TeamUser? @relation(fields: [claimantId], references: [id])
   customer  Customer  @relation(fields: [customerId], references: [id])
   guild     Guild     @relation(fields: [guildId], references: [id])
   team      Team      @relation(fields: [teamId], references: [id])
   feedback  Feedback?
 
-  claimantId Int
+  claimantId Int?
   customerId Int
   guildId    Int
   teamId     Int
@@ -109,6 +125,7 @@ model Guild {
   teams     Team[]
   tickets   Ticket[]
   customers Customer[]
+  panels    Panel[]
 
   @@index([guildId])
 }

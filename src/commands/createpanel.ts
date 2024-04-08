@@ -41,7 +41,7 @@ const _slashCommand: SlashCommandFunction = async (interaction) => {
 
 	if (emoji) buttonBuilder.setEmoji(emoji);
 
-	interaction.channel?.send({
+	const msg = await interaction.channel?.send({
 		embeds: [
 			new EmbedBuilder()
 				.setColor((color ?? '#0000FF') as ColorResolvable)
@@ -50,6 +50,18 @@ const _slashCommand: SlashCommandFunction = async (interaction) => {
 		],
 		components: [new ActionRowBuilder<ButtonBuilder>().addComponents(buttonBuilder)],
 	});
+
+	if (!msg) return;
+
+	await prisma.panel.create({
+		data: {
+			guild: { connectOrCreate: { where: { guildId: interaction.guildId! }, create: { guildId: interaction.guildId! } } },
+			team: { connect: { id: teams.find((t) => t.name === team)!.id } },
+			messageId: msg.id,
+		},
+	});
+
+	await interaction.editReply({ content: 'I have created a new panel for you!' });
 };
 
 const _textCommand: TextCommandFunction = async (msg, args) => {
@@ -63,6 +75,47 @@ const _textCommand: TextCommandFunction = async (msg, args) => {
 
 const _interaction: InteractionFunction = async (interaction) => {
 	if (!interaction.isButton() || interaction.customId !== 'ticket_create') return;
+
+	const msgId = interaction.message.id;
+
+	const panel = await prisma.panel.findFirst({
+		where: { messageId: msgId },
+		include: {
+			team: true,
+		},
+	});
+
+	if (!panel) {
+		await interaction.reply({ content: 'This panel is not valid', ephemeral: true });
+		return;
+	}
+
+	const customerUser = interaction.user;
+
+	const ticketGuild = await prisma.guild.findFirst({ where: { guildId: interaction.guildId! } });
+
+	if (!ticketGuild) {
+		await interaction.reply({ content: 'This guild is not valid', ephemeral: true });
+		return;
+	}
+
+	/* const ticket = await prisma.ticket.create({
+		data: {
+			customer: {
+				connectOrCreate: {
+					where: { userId: customerUser.id, guildId: ticketGuild.id },
+					create: {
+						userId: customerUser.id,
+						guild: { connect: { guildId: interaction.guildId! } },
+						avatar: customerUser.avatarURL(),
+						username: customerUser.username,
+					},
+				},
+			},
+		},
+	}); */
+
+	//const channel = await interaction.guild?.channels.create(`ticker-${panel.id}`)
 };
 
 const command = defineCommand({
