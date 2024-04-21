@@ -1,6 +1,8 @@
-import { Client, GatewayIntentBits, Partials } from 'discord.js';
+import { ChannelType, Client, GatewayIntentBits, Partials } from 'discord.js';
 import { _envCheck, env } from './src/api/env';
 import { ExecuteCommand, RegisterCommands, RegisterSlashCommands } from './src/commandManager';
+import { logMessage } from './src/api/messages';
+import { prisma } from './src/db';
 
 _envCheck();
 
@@ -20,6 +22,7 @@ bot.on('ready', async () => {
 });
 
 bot.on('messageCreate', (msg) => {
+	logMessage(msg);
 	if (!msg.content.startsWith(env.PREFIX)) return;
 
 	const commandName = msg.content.split(' ')[0].slice(1);
@@ -28,6 +31,28 @@ bot.on('messageCreate', (msg) => {
 		ExecuteCommand(commandName, msg);
 	} catch (err) {
 		console.error(`Error occured attempting to run command '${commandName}': ${err}`);
+	}
+});
+
+bot.on('channelDelete', async (channel) => {
+	if (channel.type === ChannelType.GuildText) {
+		const ticket = await prisma.ticket.findFirst({
+			where: {
+				channelId: channel.id,
+			},
+		});
+
+		if (!ticket || ticket.closed) return;
+
+		// Manual deletion, mark the ticket as deleted (not closed)
+		await prisma.ticket.update({
+			where: {
+				id: ticket.id,
+			},
+			data: {
+				deleted: true,
+			},
+		});
 	}
 });
 

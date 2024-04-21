@@ -1,18 +1,8 @@
-import {
-	ActionRowBuilder,
-	ApplicationCommandOptionType,
-	ButtonBuilder,
-	ButtonStyle,
-	ChannelType,
-	ColorResolvable,
-	EmbedBuilder,
-	TextChannel,
-	ThreadAutoArchiveDuration,
-} from 'discord.js';
+import { ActionRowBuilder, ApplicationCommandOptionType, ButtonBuilder, ButtonStyle, ColorResolvable, EmbedBuilder } from 'discord.js';
 import { defineCommand, utils } from '../utils';
 import { InteractionFunction, SlashCommandFunction, TextCommandFunction } from '../types/Command';
 import { prisma } from '../db';
-import { scoreTeam } from '../api/algorithm';
+import { closeTicket, createTicket, rateTicket, showRateTicket } from '../api/ticket';
 
 const _slashCommand: SlashCommandFunction = async (interaction) => {
 	const _team = interaction.options.get('team');
@@ -126,137 +116,12 @@ const _textCommand: TextCommandFunction = async (msg, args) => {
 };
 
 const _interaction: InteractionFunction = async (interaction) => {
-	if (!interaction.isButton() || interaction.customId !== 'ticket_create') return;
+	if (!interaction.isButton() && !interaction.isModalSubmit()) return;
 
-	interaction.deferReply({ ephemeral: true });
-
-	const msgId = interaction.message.id;
-
-	const [panel, ticketGuild] = await prisma.$transaction([
-		prisma.panel.findFirst({
-			where: { messageId: msgId },
-			include: {
-				team: {
-					include: {
-						users: {
-							include: {
-								user: true,
-							},
-						},
-					},
-				},
-			},
-		}),
-		prisma.guild.findFirst({ where: { guildId: interaction.guildId! } }),
-	]);
-
-	if (!panel) {
-		await interaction.editReply({ content: 'This panel is not valid' });
-		return;
-	}
-	if (!ticketGuild) {
-		await interaction.editReply({ content: 'This guild is not valid' });
-		return;
-	}
-
-	const customerUser = interaction.user;
-
-	const bestRep = await scoreTeam(interaction.guild!, panel.team.id);
-
-	if (!bestRep) {
-		await interaction.editReply({ content: 'I could not find a representative for you, please notify administrators' });
-		return;
-	}
-
-	// YOU MUST ASSIGN A CHANNEL TO THE TICKET, PLEASE DELETE THE TICKET OBJECT IF IT DOES NOT EXIST
-	const ticket = await prisma.ticket.create({
-		data: {
-			team: { connect: { id: panel.team.id } },
-			guild: { connect: { id: ticketGuild.id } },
-			customer: {
-				connectOrCreate: {
-					where: {
-						userId_guildId: {
-							userId: customerUser.id,
-							guildId: ticketGuild.id,
-						},
-					},
-					create: {
-						userId: customerUser.id,
-						guild: { connect: { guildId: interaction.guildId! } },
-						avatar: customerUser.avatarURL(),
-						username: customerUser.username,
-					},
-				},
-			},
-		},
-	});
-
-	const discardTicket = async () => {
-		await prisma.ticket.delete({ where: { id: ticket.id } });
-	};
-
-	let channel: TextChannel | undefined;
-	try {
-		channel = await interaction.guild?.channels.create({
-			name: `ticket-${ticket.id}`,
-			type: ChannelType.GuildText,
-		});
-
-		if (!channel) {
-			discardTicket();
-			await interaction.editReply({ content: 'I could not create a channel for you' });
-			return;
-		}
-
-		await channel.send({
-			embeds: [
-				new EmbedBuilder()
-					.setTitle(`Ticket ID: ${ticket.id}`)
-					.setDescription('Please wait for a representative to assist you')
-					.setColor('#0000FF'),
-			],
-		});
-
-		const adminThread = await channel.threads.create({
-			name: `Admin Chat ${ticket.id}`,
-			type: ChannelType.PrivateThread,
-			reason: 'Private thread for for team notes and communication',
-			invitable: false,
-		});
-
-		if (!adminThread) {
-			discardTicket();
-			await interaction.editReply({ content: 'I could not create a channel for you, please try again later' });
-			return;
-		}
-
-		await adminThread.send({
-			content: panel.team.users.map((u) => `<@${u.user.userId}>`).join(' '),
-			embeds: [
-				new EmbedBuilder()
-					.setTitle(`Admin Channel for Ticket ID: ${ticket.id}`)
-					.setDescription(
-						'Please utilize this thread for internal communication,\nAdmins, be weary with pinging users, as it may result in them getting access to this channel'
-					)
-					.setColor('#000000'),
-			],
-		});
-
-		await prisma.ticket.update({
-			where: { id: ticket.id },
-			data: {
-				channelId: channel.id,
-				adminThreadId: adminThread.id,
-			},
-		});
-	} catch (error) {
-		discardTicket();
-		await interaction.editReply({ content: 'I could not create a channel for you, please try again later' });
-		return;
-	}
-
-	await interaction.editReply({ content: `I have created a ticket for you at <#${channel.id}>` });
+	if (interaction.customId === 'ticket_create') return await createTicket(interaction);
+	if (interaction.customId === 'ticket_close') return await closeTicket(interaction);
+	if (interaction.customId.startsWith('ticket_modalrate_')) return await rateTicket(interaction);
+	if (interaction.customId.startsWith('ticket_rate_')) return await showRateTicket(interaction);
 };
 
 const command = defineCommand({

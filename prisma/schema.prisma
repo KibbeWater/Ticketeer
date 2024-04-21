@@ -26,6 +26,7 @@ model Panel {
 model Feedback {
   id        Int      @id @default(autoincrement())
   rating    Int
+  comment   String?
   ticket    Ticket   @relation(references: [id], fields: [ticketId])
   ticketId  Int      @unique
   createdAt DateTime @default(now())
@@ -102,6 +103,8 @@ model Customer {
 
 model Ticket {
   id            Int       @id @default(autoincrement())
+  closed        Boolean   @default(false)
+  deleted       Boolean   @default(false)
   channelId     String?
   adminThreadId String?
   claimant      TeamUser? @relation(fields: [claimantId], references: [id])
@@ -109,6 +112,7 @@ model Ticket {
   guild         Guild     @relation(fields: [guildId], references: [id])
   team          Team      @relation(fields: [teamId], references: [id])
   feedback      Feedback?
+  messages      Message[]
 
   claimantId Int?
   customerId Int
@@ -119,6 +123,20 @@ model Ticket {
   closedAt  DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id          Int      @id @default(autoincrement())
+  userId      String
+  messageId   String   @unique
+  content     String
+  embeds      Json?
+  deleted     Boolean  @default(false)
+  attachments String[]
+  ticket      Ticket   @relation(fields: [ticketId], references: [id])
+  ticketId    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Guild {
