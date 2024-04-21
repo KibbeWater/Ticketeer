@@ -4,7 +4,7 @@ import { prisma } from '../db';
 const maxTicketsCount = 5;
 const maxExperienceTickets = 100;
 
-async function scoreTeam(guild: Guild, teamId: number, options?: { vipLevel: number }) {
+export async function scoreTeam(guild: Guild, teamId: number, options?: { vipLevel: number }) {
 	const guildTeams = await prisma.guild.findUnique({
 		where: {
 			guildId: guild.id,
@@ -39,12 +39,14 @@ async function scoreTeam(guild: Guild, teamId: number, options?: { vipLevel: num
 		})
 	);
 
-	return (
+	const rep = (
 		scores.filter((s) => s !== undefined) as {
 			user: GuildMember;
 			score: number;
 		}[]
-	).sort((a, b) => b.score - a.score)[0];
+	).sort((a, b) => b.score - a.score)[0] as { user: GuildMember; score: number } | undefined;
+
+	return rep;
 }
 
 /**

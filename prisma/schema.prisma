@@ -67,6 +67,7 @@ model TeamRole {
   team      Team       @relation(fields: [teamId], references: [id])
   teamId    Int
 
+  @@unique([name, teamId])
   @@index([teamId])
 }
 
@@ -100,13 +101,14 @@ model Customer {
 }
 
 model Ticket {
-  id        Int       @id @default(autoincrement())
-  channelId String
-  claimant  TeamUser? @relation(fields: [claimantId], references: [id])
-  customer  Customer  @relation(fields: [customerId], references: [id])
-  guild     Guild     @relation(fields: [guildId], references: [id])
-  team      Team      @relation(fields: [teamId], references: [id])
-  feedback  Feedback?
+  id            Int       @id @default(autoincrement())
+  channelId     String?
+  adminThreadId String?
+  claimant      TeamUser? @relation(fields: [claimantId], references: [id])
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  guild         Guild     @relation(fields: [guildId], references: [id])
+  team          Team      @relation(fields: [teamId], references: [id])
+  feedback      Feedback?
 
   claimantId Int?
   customerId Int
