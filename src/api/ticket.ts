@@ -289,6 +289,8 @@ export const closeTicket: InteractionFunction = async (interaction) => {
 	const missingMessages = msgs.filter((m) => !ticketMessages.some((tm) => tm.messageId === m.id));
 	removePendingMessages([...missingMessages.map((m) => m.id)]);
 
+	const messagesDeleted = ticketMessages.filter((tm) => !msgs.some((m) => m.id === tm.messageId));
+
 	await prisma.$transaction([
 		prisma.message.createMany({
 			data: missingMessages.map((m) => ({
@@ -299,6 +301,16 @@ export const closeTicket: InteractionFunction = async (interaction) => {
 				embeds: m.embeds.length > 0 ? { v: 1, embeds: embedToJson(m) } : undefined,
 				attachments: m.attachments.map((a) => a.url),
 			})),
+		}),
+		prisma.message.updateMany({
+			where: {
+				messageId: {
+					in: messagesDeleted.map((m) => m.messageId),
+				},
+			},
+			data: {
+				deleted: true,
+			},
 		}),
 		prisma.ticket.update({
 			where: { id: ticket.id },

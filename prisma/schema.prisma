@@ -12,6 +12,61 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// NextAuth models
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+// Our own models
 model Panel {
   id        Int      @id @default(autoincrement())
   guild     Guild    @relation(fields: [guildId], references: [id])
@@ -33,7 +88,7 @@ model Feedback {
   updatedAt DateTime @updatedAt
 }
 
-model User {
+model DiscordUser {
   id        Int        @id @default(autoincrement())
   userId    String     @unique
   teams     TeamUser[]
@@ -44,9 +99,9 @@ model User {
 model TeamUser {
   id Int @id @default(autoincrement())
 
-  team Team     @relation(fields: [teamId], references: [id])
-  user User     @relation(fields: [userId], references: [id])
-  role TeamRole @relation(fields: [roleId], references: [id])
+  team Team        @relation(fields: [teamId], references: [id])
+  user DiscordUser @relation(fields: [userId], references: [id])
+  role TeamRole    @relation(fields: [roleId], references: [id])
 
   roleId Int
   teamId Int
