@@ -183,6 +183,7 @@ model Ticket {
 model Message {
   id          Int      @id @default(autoincrement())
   userId      String
+  channelId   String
   messageId   String   @unique
   content     String
   embeds      Json?

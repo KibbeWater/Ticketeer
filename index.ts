@@ -1,7 +1,7 @@
 import { ChannelType, Client, GatewayIntentBits, Partials } from 'discord.js';
 import { _envCheck, env } from './src/api/env';
 import { ExecuteCommand, RegisterCommands, RegisterSlashCommands } from './src/commandManager';
-import { logMessage } from './src/api/messages';
+import { logMessage, pushLogs } from './src/api/messages';
 import { prisma } from './src/db';
 
 _envCheck();
@@ -16,9 +16,13 @@ if (!env.DISCORD_TOKEN) {
 	process.exit(1);
 }
 
+let interval: NodeJS.Timeout | undefined = undefined;
 bot.on('ready', async () => {
 	await RegisterCommands();
 	await RegisterSlashCommands(bot);
+
+	if (interval) clearInterval(interval);
+	interval = setInterval(pushLogs, 1000 * 30);
 });
 
 bot.on('messageCreate', (msg) => {

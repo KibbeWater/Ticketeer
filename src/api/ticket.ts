@@ -296,6 +296,7 @@ export const closeTicket: InteractionFunction = async (interaction) => {
 			data: missingMessages.map((m) => ({
 				ticketId: ticket.id,
 				messageId: m.id,
+				channelId: m.channel.id,
 				userId: m.author.id,
 				content: m.content,
 				embeds: m.embeds.length > 0 ? { v: 1, embeds: embedToJson(m) } : undefined,

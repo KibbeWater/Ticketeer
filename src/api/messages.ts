@@ -4,8 +4,7 @@ import { prisma } from '../db';
 let cachedTickets: Set<string> = new Set();
 let lastCached: number = -1;
 
-let messagesToLog: { guildId: string; channelId: string; message: Message; attachments: string[] }[] = [];
-let interval: NodeJS.Timeout = setInterval(intervalFunc, 1000 * 30);
+let messagesToLog: { guildId: string; channelId: string; message: Message; attachments: string[]; date: Date }[] = [];
 
 export const embedToJson: (msg: Message) => object[] = (msg) =>
 	msg.embeds.map((e) => ({
@@ -15,7 +14,7 @@ export const embedToJson: (msg: Message) => object[] = (msg) =>
 		fields: e.fields.map((f) => ({ name: f.name, value: f.value })),
 	}));
 
-async function intervalFunc() {
+export async function pushLogs() {
 	if (messagesToLog.length === 0) return;
 
 	let toLog = messagesToLog;
@@ -48,9 +47,11 @@ async function intervalFunc() {
 			content: m.message.content,
 			messageId: m.message.id,
 			userId: m.message.author.id,
+			channelId: m.channelId,
 			ticketId: tickets.find((t) => t.channelId === m.channelId || t.adminThreadId == m.channelId)!.id,
 			embeds: m.message.embeds.length > 0 ? { v: 1, embeds: embedToJson(m.message) } : undefined,
 			attachments: m.attachments,
+			createdAt: m.date,
 		})),
 	});
 }
@@ -92,5 +93,6 @@ export async function logMessage(message: Message) {
 		channelId: message.channel.id,
 		message,
 		attachments: message.attachments.map((a) => a.url),
+		date: new Date(),
 	});
 }
